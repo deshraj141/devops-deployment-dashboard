@@ -232,6 +232,24 @@ Jenkins prerequisites:
 - Jenkins host with Docker and Docker Compose installed
 - Credential ID dockerhub-creds configured as username/password
 
+### Recommended Jenkins container setup
+
+The default `jenkins/jenkins:lts` image does not include Node.js or the Docker CLI, so the pipeline will fail at the install/build stages unless you provide those tools.
+
+Use the custom Jenkins image in `jenkins/Dockerfile` and mount the Docker socket from the host:
+
+```powershell
+docker build -t devops-jenkins .\jenkins
+docker run -d --name jenkins `
+   -p 8080:8080 `
+   -p 50000:50000 `
+   -v jenkins_home:/var/jenkins_home `
+   -v /var/run/docker.sock:/var/run/docker.sock `
+   devops-jenkins
+```
+
+If you keep the plain Jenkins image, install Node.js and Docker tooling separately before running the pipeline.
+
 ## Screenshots Required for Submission
 
 1. Login page
