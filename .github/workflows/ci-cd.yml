@@ -13,6 +13,11 @@ permissions:
 jobs:
   build-test-and-push:
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
     steps:
       - name: Checkout source code
@@ -47,14 +52,14 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GHCR
-        if: github.ref == 'refs/heads/main' && secrets.GHCR_USERNAME != '' && secrets.GHCR_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != '' && env.GHCR_TOKEN != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -78,7 +83,7 @@ jobs:
           tags: local/devops-dashboard-frontend:pr
 
       - name: Build and push backend image to Docker Hub
-        if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
         uses: docker/build-push-action@v6
         with:
           context: ./server
@@ -88,7 +93,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/devops-dashboard-backend:${{ github.sha }}
 
       - name: Build and push frontend image to Docker Hub
-        if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
         uses: docker/build-push-action@v6
         with:
           context: ./client
@@ -98,7 +103,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/devops-dashboard-frontend:${{ github.sha }}
 
       - name: Build and push backend image to GHCR
-        if: github.ref == 'refs/heads/main' && secrets.GHCR_USERNAME != '' && secrets.GHCR_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != '' && env.GHCR_TOKEN != ''
         uses: docker/build-push-action@v6
         with:
           context: ./server
@@ -108,7 +113,7 @@ jobs:
             ghcr.io/${{ secrets.GHCR_USERNAME }}/devops-dashboard-backend:${{ github.sha }}
 
       - name: Build and push frontend image to GHCR
-        if: github.ref == 'refs/heads/main' && secrets.GHCR_USERNAME != '' && secrets.GHCR_TOKEN != ''
+        if: github.ref == 'refs/heads/main' && env.GHCR_USERNAME != '' && env.GHCR_TOKEN != ''
         uses: docker/build-push-action@v6
         with:
           context: ./client
