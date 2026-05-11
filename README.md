@@ -230,7 +230,9 @@ Stages:
 Jenkins prerequisites:
 
 - Jenkins host with Docker and Docker Compose installed
-- Credential ID dockerhub-creds configured as username/password
+- Optional Jenkins credentials ID for Docker Hub push access
+
+If you leave the Docker Hub credentials ID blank when starting the Jenkins job, the push stage is skipped and the pipeline still completes the build, test, and deploy steps.
 
 ### Recommended Jenkins container setup
 
@@ -245,6 +247,7 @@ docker run -d --name jenkins `
    -p 50000:50000 `
    -v jenkins_home:/var/jenkins_home `
    -v /var/run/docker.sock:/var/run/docker.sock `
+   --group-add 0 `
    devops-jenkins
 ```
 

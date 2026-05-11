@@ -1,8 +1,11 @@
 pipeline {
   agent any
 
+  parameters {
+    string(name: 'DOCKERHUB_CREDENTIALS_ID', defaultValue: '', description: 'Optional Jenkins credentials ID for Docker Hub. Leave blank to skip pushing images.')
+  }
+
   environment {
-    DOCKERHUB_CREDENTIALS = 'dockerhub-creds'
     DOCKERHUB_USER = 'your-dockerhub-username'
     BACKEND_IMAGE = "${DOCKERHUB_USER}/devops-dashboard-backend:${BUILD_NUMBER}"
     FRONTEND_IMAGE = "${DOCKERHUB_USER}/devops-dashboard-frontend:${BUILD_NUMBER}"
@@ -55,8 +58,11 @@ pipeline {
     }
 
     stage('Push Images to Docker Hub') {
+      when {
+        expression { return params.DOCKERHUB_CREDENTIALS_ID?.trim() }
+      }
       steps {
-        withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+        withCredentials([usernamePassword(credentialsId: "${params.DOCKERHUB_CREDENTIALS_ID}", passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
           sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
           sh "docker push ${BACKEND_IMAGE}"
           sh "docker push ${FRONTEND_IMAGE}"
