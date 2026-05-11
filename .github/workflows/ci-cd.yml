@@ -1,0 +1,118 @@
+name: DevOps Dashboard CI/CD Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-test-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install backend dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Run backend checks
+        working-directory: server
+        run: npm run check
+
+      - name: Run backend tests
+        working-directory: server
+        run: npm test
+
+      - name: Run frontend build check
+        working-directory: client
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        if: github.ref == 'refs/heads/main' && secrets.GHCR_USERNAME != '' && secrets.GHCR_TOKEN != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build backend image (PR validation)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: false
+          tags: local/devops-dashboard-backend:pr
+
+      - name: Build frontend image (PR validation)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: false
+          tags: local/devops-dashboard-frontend:pr
+
+      - name: Build and push backend image to Docker Hub
+        if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops-dashboard-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops-dashboard-backend:${{ github.sha }}
+
+      - name: Build and push frontend image to Docker Hub
+        if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops-dashboard-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops-dashboard-frontend:${{ github.sha }}
+
+      - name: Build and push backend image to GHCR
+        if: github.ref == 'refs/heads/main' && secrets.GHCR_USERNAME != '' && secrets.GHCR_TOKEN != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          push: true
+          tags: |
+            ghcr.io/${{ secrets.GHCR_USERNAME }}/devops-dashboard-backend:latest
+            ghcr.io/${{ secrets.GHCR_USERNAME }}/devops-dashboard-backend:${{ github.sha }}
+
+      - name: Build and push frontend image to GHCR
+        if: github.ref == 'refs/heads/main' && secrets.GHCR_USERNAME != '' && secrets.GHCR_TOKEN != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          push: true
+          tags: |
+            ghcr.io/${{ secrets.GHCR_USERNAME }}/devops-dashboard-frontend:latest
+            ghcr.io/${{ secrets.GHCR_USERNAME }}/devops-dashboard-frontend:${{ github.sha }}
