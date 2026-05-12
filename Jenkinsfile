@@ -72,8 +72,16 @@ pipeline {
 
     stage('Deploy with Docker Compose') {
       steps {
-        sh 'docker compose down || true'
-        sh 'docker compose up -d --build'
+        sh '''
+          # Force remove any existing containers with these names
+          docker rm -f devops_mongo devops_server devops_client 2>/dev/null || true
+          
+          # Aggressive cleanup: down with volumes and remove orphans
+          docker compose down -v --remove-orphans || true
+          
+          # Bring up fresh containers
+          docker compose up -d --build
+        '''
       }
     }
   }
